@@ -45,13 +45,13 @@ class ResponseFilterMiddleware:
         return None  # 不处理异常，交给其他中间件
 
 class ProxyDownloaderMiddleware:
-    _proxy = ('z933.kdltps.com', '15818')
+    _proxy = ('s425.kdlfps.com', '18866')
 
     def process_request(self, request, spider):
 
         # 用户名密码认证
-        username = "t13198848469265"
-        password = "gpehicqi"
+        username = "f2470416461"
+        password = "smueu1d8"
         request.meta['proxy'] = "http://%(user)s:%(pwd)s@%(proxy)s/" % {"user": username, "pwd": password, "proxy": ':'.join(ProxyDownloaderMiddleware._proxy)}
 
         # 白名单认证
@@ -66,16 +66,6 @@ class ProxyDownloaderMiddleware:
             from scrapy.resolver import dnscache
             dnscache.__delitem__(ProxyDownloaderMiddleware._proxy[0])  # 删除proxy host的dns缓存
         return exception
-# 打印请求头
-class LogRequestHeadersMiddleware:
-    def process_request(self, request, spider):
-        spider.logger.info(f"请求头: {request.headers}")
-        return None
-
-    def process_response(self, request, response, spider):
-        if response.status == 403:
-            spider.logger.info(f"403 错误的请求头: {request.headers}")
-        return response
 
 class CloudScraperMiddleware:
     def __init__(self):
