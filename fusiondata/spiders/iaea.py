@@ -13,13 +13,7 @@ class InisSpider(scrapy.Spider):
     allowed_domains = ["inis.iaea.org"]
     def __init__(self, *args, **kwargs):
         super(InisSpider, self).__init__(*args, **kwargs)
-        self.search_terms = ["non-linear effects in plasma", "non-linear wave-particle resonant effect",
-"three-wave process", "plasma echo", "parametric excitation (parametric instability)",
-"side-band effect", "non-linear wave", "laser light scattering by plasma",
-"stimulated Raman scattering", "Stimulated Brillouin scattering",
-"modulational instability", "envelope instability", "decay instability",
-"plasma turbulence", "plasma magnetohydrodynamic turbulence", "weak turbulence",
-"strong turbulence", "quasi-linear theory", "soliton"]
+        self.search_terms = ["strong turbulence"]
         '''self.search_terms = [
             "Neutral Beam Injection System Design","Radio Frequency Heating Systems","Electron Cyclotron Heating","Ion Cyclotron Heating","Lower Hybrid Current Drive Systems","Antenna and Waveguide Design","High-Power Microwave Technology","ECH","ICH",
             "Magnetic Diagnostic Equipment","Laser Interferometry Systems","Thomson Scattering Diagnostics","Neutron Diagnostic Techniques","X-ray Imaging Systems","Spectroscopic Diagnostics","Data Processing and Analysis Software",
@@ -59,28 +53,60 @@ class InisSpider(scrapy.Spider):
                 yield scrapy.Request(url=url, callback=self.parse, cb_kwargs={'search_term': term})
     def parse(self, response, search_term):
         # Extract necessary data
-        for record in response.xpath("//div[@class='result-default-view']"):
-            pdf_link = record.xpath(".//a[contains(@class, 'fileTypeIcon')]/@href").get()
+        for record in response.xpath("//div[@class='row g1']"):
+            record1=record.xpath(".//div[@class='result-default-view']")
+            pdf_link = record1.xpath(".//a[contains(@class, 'fileTypeIcon')]/@href").get()
             pdf_link_full = urljoin(response.url, pdf_link) if pdf_link else None
-            title = record.xpath(".//div[@class='g1-title']//span[@class='englishtitle title']/text()").get()
+            title = record1.xpath(".//div[@class='g1-title']//span[@class='englishtitle title']/text()").get()
             if not title:
                 continue  # Skip records without titles
-            author = record.xpath(".//div[@class='g1-metadata']//span[@class='aut-cc author']/a/text()").getall()
+            author = record1.xpath(".//div[@class='g1-metadata']//span[@class='aut-cc author']/a/text()").getall()
             author = ', '.join(author) if author else None
-            year = record.xpath(".//div[@class='g1-metadata']//small[@class='text-muted d-block year']/text()").get()
-            abstract = record.xpath(".//div[@class='g1-metadata']//span[@class='lead-cc leadtitle title']/text()").get()
-            primary_subject = record.xpath(".//div[@class='metadata-row']//div[@class='primarysubject subject']/a/text()").get()
+            year = record1.xpath(".//div[@class='g1-metadata']//small[@class='text-muted d-block year']/text()").get()
+            record2=record.xpath(".//div[@class='expandable']")
+            # 抽象
+            abstract = record2.xpath(".//div[@class='abstract abstract in']//text()").getall()
+            # 主要科目
+            primary_subject = record2.xpath(".//div[@class='col-md-10 cc primarysubject subject']//text()").getall()
+            # 来源
+            source = record2.xpath(".//div[@class='col-md-10 cc source']//text()").getall()
+            # 记录类型
+            record_type = record2.xpath(".//div[@class='col-md-10 cc recordtype']//text()").getall()
+            # 报告编号
+            report_number = record2.xpath(".//div[@class='col-md-10 cc reportnumber']//text()").getall()
+            # 出版国家
+            country = record2.xpath(".//div[@class='col-md-10 cc country']//text()").getall()
+            # 描述符 DEI
+            descriptors_dei = record2.xpath(".//div[@class='col-md-10 cc dei descriptors']//text()").getall()
+            # 描述符 DEC
+            descriptors_dec = record2.xpath(".//div[@class='col-md-10 cc dec descriptors']//text()").getall()
+            # 参考编号
+            reference_number = record2.xpath(".//div[@class='col-md-10 collapse-xs cc rn']//text()").getall()
+            # INIS 卷
+            inis_volume = record2.xpath(".//div[@class='col-md-10 collapse-xs cc volume']//text()").getall()
+            # INIS 问题
+            inis_issue = record1.xpath(".//div[@class='col-md-10 collapse-xs cc issue']//text()").getall()
+            print(country)
+            print("=====================================")
             item = {
                 'title': title,
-                'link': response.urljoin(record.xpath(".//a[contains(@class, 'title-link')]/@href").get()),
+                'link': pdf_link_full,
                 'author': author,
                 'year': year,
                 'abstract': abstract,
                 'primary_subject': primary_subject,
                 'pdf_url': pdf_link_full,
-                'search_term': search_term,
+                'search_term': search_term,  # 假设 search_term 在函数上下文中定义
+                'source': ', '.join(source) if source else None,
+                'record_type': ', '.join(record_type) if record_type else None,
+                'report_number': ', '.join(report_number) if report_number else None,
+                'country': ', '.join(country) if country else None,
+                'descriptors_dei': ', '.join(descriptors_dei) if descriptors_dei else None,
+                'descriptors_dec': ', '.join(descriptors_dec) if descriptors_dec else None,
+                'reference_number': ', '.join(reference_number) if reference_number else None,
+                'inis_volume': ', '.join(inis_volume) if inis_volume else None,
+                'inis_issue': ', '.join(inis_issue) if inis_issue else None,
             }
-
             
 
             # 处理 PDF 链接
